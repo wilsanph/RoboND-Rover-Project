@@ -21,6 +21,8 @@ import time
 from perception import perception_step
 from decision import decision_step
 from supporting_functions import update_rover, create_output_images
+from NavigationStructures import RoverNavigationPath
+
 # Initialize socketio server and Flask application 
 # (learn more at: https://python-socketio.readthedocs.io/en/latest/)
 sio = socketio.Server()
@@ -40,6 +42,7 @@ class RoverState():
     def __init__(self):
         self.start_time = None # To record the start time of navigation
         self.total_time = None # To record total duration of naviagation
+        self.time_struct = { 'before' : 0, 'now' : 0, 'delta' : 0 }
         self.img = None # Current camera image
         self.pos = None # Current position (x, y)
         self.yaw = None # Current yaw angle
@@ -76,6 +79,12 @@ class RoverState():
         self.near_sample = 0 # Will be set to telemetry value data["near_sample"]
         self.picking_up = 0 # Will be set to telemetry value data["picking_up"]
         self.send_pickup = False # Set to True to trigger rock pickup
+
+        self.sample_in_range = { 'exists': False, 'position': [ 0, 0 ] }
+        self.samples_found_pos = []
+        self.navigationPath = RoverNavigationPath() # Navigation path of the rover created in the perception step
+        self.navigationMesh = None # Navigation mesh of the rover created in the perception step
+
 # Initialize our rover 
 Rover = RoverState()
 
@@ -85,7 +94,6 @@ frame_counter = 0
 # Initalize second counter
 second_counter = time.time()
 fps = None
-
 
 # Define telemetry function for what to do with incoming data
 @sio.on('telemetry')
@@ -98,7 +106,7 @@ def telemetry(sid, data):
         fps = frame_counter
         frame_counter = 0
         second_counter = time.time()
-    print("Current FPS: {}".format(fps))
+    ## print("Current FPS: {}".format(fps))
 
     if data:
         global Rover
@@ -174,6 +182,7 @@ def send_pickup():
         pickup,
         skip_sid=True)
     eventlet.sleep(0)
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Remote Driving')
     parser.add_argument(

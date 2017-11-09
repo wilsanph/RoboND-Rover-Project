@@ -39,6 +39,7 @@ class RoverNavigationPath :
         return _data
 
 
+
     def getPoints( self ) :
         return self.m_ptsPath
 
